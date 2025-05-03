@@ -1,20 +1,77 @@
+name: Build Android APK
+
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Build APK
-        uses: digreatbrian/buildozer-action@v2
-        with:
-          python-version: 3.11
-          buildozer-cmd: buildozer -v android debug
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Upload artifacts
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            python3-pip \
+            python3-dev \
+            build-essential \
+            libssl-dev \
+            libffi-dev \
+            zlib1g-dev \
+            libncurses5-dev \
+            libgdbm-dev \
+            libnss3-dev \
+            libreadline-dev \
+            libsqlite3-dev \
+            wget \
+            unzip \
+            openjdk-11-jdk \
+            git \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libtinfo5
+
+      - name: Install Android build tools
+        run: |
+          sudo apt-get install -y \
+            android-sdk \
+            android-sdk-platform-23 \
+            android-sdk-build-tools \
+            adb \
+            aidl
+
+          # Set Android environment variables
+          echo "ANDROID_SDK_ROOT=/usr/lib/android-sdk" >> $GITHUB_ENV
+          echo "PATH=$PATH:/usr/lib/android-sdk/platform-tools" >> $GITHUB_ENV
+
+      - name: Install Buildozer and dependencies
+        run: |
+          python -m pip install --upgrade pip wheel setuptools virtualenv
+          pip install buildozer cython==0.29.33
+
+      - name: Build APK with Buildozer
+        run: |
+          buildozer init
+          buildozer -v android debug
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: package
-          path: ./bin/*.apk
+          name: android-apk
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 5
