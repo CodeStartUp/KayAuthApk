@@ -6,14 +6,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Ubuntu 24.04 (Noble)
     steps:
       - uses: actions/checkout@v4
       
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libtinfo5 libncurses5
+          sudo apt-get install -y libtinfo6 libncurses6
           
       - name: Build APK
         uses: digreatbrian/buildozer-action@v2
