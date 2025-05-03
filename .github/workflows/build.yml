@@ -44,13 +44,7 @@ jobs:
           pip install cython==0.29.19
 
       - name: Initialize Buildozer
-        run: |
-          buildozer init
-          # Configure buildozer.spec with required settings
-          sed -i 's/#android.sdk_path =/android.sdk_path = \/home\/runner\/.buildozer\/android\/platform\/android-sdk/' buildozer.spec
-          sed -i 's/#android.ndk_path =/android.ndk_path = \/home\/runner\/.buildozer\/android\/platform\/android-ndk/' buildozer.spec
-          sed -i 's/#android.build_tools_version =/android.build_tools_version = 34.0.0/' buildozer.spec
-          sed -i 's/#android.accept_sdk_license = False/android.accept_sdk_license = True/' buildozer.spec
+        
 
       - name: Install Android SDK components
         run: |
