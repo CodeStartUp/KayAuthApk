@@ -2,9 +2,9 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -22,50 +22,46 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y \
-            python3-pip \
-            python3-dev \
-            build-essential \
-            libssl-dev \
-            libffi-dev \
-            zlib1g-dev \
-            libncurses5-dev \
-            libgdbm-dev \
-            libnss3-dev \
-            libreadline-dev \
-            libsqlite3-dev \
-            wget \
+            git \
             unzip \
             openjdk-11-jdk \
-            git \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
             zlib1g-dev \
             libncurses5-dev \
             libtinfo5
 
-      - name: Install Android build tools
+      - name: Install Android SDK and tools
         run: |
-          sudo apt-get install -y \
-            android-sdk \
-            android-sdk-platform-23 \
-            android-sdk-build-tools \
-            adb \
-            aidl
+          # Download and install Android Command Line Tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip commandlinetools-linux-9477386_latest.zip -d cmdline-tools
+          mkdir -p android-sdk/cmdline-tools/latest
+          mv cmdline-tools/* android-sdk/cmdline-tools/latest/
+          rm -rf cmdline-tools commandlinetools-linux-9477386_latest.zip
 
-          # Set Android environment variables
-          echo "ANDROID_SDK_ROOT=/usr/lib/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:/usr/lib/android-sdk/platform-tools" >> $GITHUB_ENV
+          # Set environment variables
+          echo "ANDROID_SDK_ROOT=$(pwd)/android-sdk" >> $GITHUB_ENV
+          echo "PATH=$PATH:$(pwd)/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_ENV
 
-      - name: Install Buildozer and dependencies
+          # Accept licenses and install packages
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;34.0.0" "cmdline-tools;latest"
+
+      - name: Verify Android tools installation
+        run: |
+          echo "Android SDK components:"
+          ls -la $ANDROID_SDK_ROOT
+          echo "Build tools:"
+          ls -la $ANDROID_SDK_ROOT/build-tools/34.0.0/
+          which aidl || echo "AIDL not found"
+
+      - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip wheel setuptools virtualenv
           pip install buildozer cython==0.29.33
 
       - name: Build APK with Buildozer
         run: |
-         
+        
           buildozer -v android debug
 
       - name: Upload APK artifact
