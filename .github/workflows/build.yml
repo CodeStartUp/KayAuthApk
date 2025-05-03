@@ -3,8 +3,6 @@ name: Build Android APK
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   build:
@@ -29,9 +27,9 @@ jobs:
             libncurses5-dev \
             libtinfo5
 
-      - name: Install Android SDK and tools
+      - name: Install Android SDK
         run: |
-          # Download and install Android Command Line Tools
+          # Download and extract command line tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip commandlinetools-linux-9477386_latest.zip -d cmdline-tools
           mkdir -p android-sdk/cmdline-tools/latest
@@ -40,28 +38,37 @@ jobs:
 
           # Set environment variables
           echo "ANDROID_SDK_ROOT=$(pwd)/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:$(pwd)/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_ENV
+          echo "PATH=$PATH:$(pwd)/android-sdk/cmdline-tools/latest/bin:$(pwd)/android-sdk/platform-tools" >> $GITHUB_ENV
 
-          # Accept licenses and install packages
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;34.0.0" "cmdline-tools;latest"
+          # Verify sdkmanager is accessible
+          which sdkmanager || echo "sdkmanager not found"
 
-      - name: Verify Android tools installation
+      - name: Install Android packages
         run: |
-          echo "Android SDK components:"
-          ls -la $ANDROID_SDK_ROOT
-          echo "Build tools:"
+          # Accept licenses first
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+
+          # Install required components
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;34.0.0" \
+            "cmdline-tools;latest"
+
+      - name: Verify installation
+        run: |
+          echo "Android tools:"
           ls -la $ANDROID_SDK_ROOT/build-tools/34.0.0/
-          which aidl || echo "AIDL not found"
+          $ANDROID_SDK_ROOT/build-tools/34.0.0/aidl --version || echo "AIDL check failed"
 
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip wheel setuptools virtualenv
           pip install buildozer cython==0.29.33
 
-      - name: Build APK with Buildozer
+      - name: Build APK
         run: |
-        
+          
           buildozer -v android debug
 
       - name: Upload APK artifact
