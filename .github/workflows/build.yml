@@ -29,31 +29,37 @@ jobs:
 
       - name: Install Android SDK
         run: |
-          # Download and extract command line tools
+          # Create Android SDK directory
+          mkdir -p android-sdk
+
+          # Download and extract command line tools to correct location
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip commandlinetools-linux-9477386_latest.zip -d cmdline-tools
+          unzip commandlinetools-linux-9477386_latest.zip
           mkdir -p android-sdk/cmdline-tools/latest
           mv cmdline-tools/* android-sdk/cmdline-tools/latest/
           rm -rf cmdline-tools commandlinetools-linux-9477386_latest.zip
 
           # Set environment variables
+          echo "ANDROID_HOME=$(pwd)/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$(pwd)/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:$(pwd)/android-sdk/cmdline-tools/latest/bin:$(pwd)/android-sdk/platform-tools" >> $GITHUB_ENV
-
-          # Verify sdkmanager is accessible
-          which sdkmanager || echo "sdkmanager not found"
+          echo "PATH=$PATH:$(pwd)/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_ENV
 
       - name: Install Android packages
         run: |
-          # Accept licenses first
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          # Verify sdkmanager is accessible
+          ls -la $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --list || echo "sdkmanager check failed"
 
-          # Install required components
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+          # Accept licenses (non-interactive)
+          mkdir -p "$ANDROID_SDK_ROOT/licenses"
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_SDK_ROOT/licenses/android-sdk-license"
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_SDK_ROOT/licenses/android-sdk-preview-license"
+
+          # Install required components (using yes pipe)
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;android-33" \
-            "build-tools;34.0.0" \
-            "cmdline-tools;latest"
+            "build-tools;34.0.0"
 
       - name: Verify installation
         run: |
@@ -68,7 +74,7 @@ jobs:
 
       - name: Build APK
         run: |
-          
+      \
           buildozer -v android debug
 
       - name: Upload APK artifact
